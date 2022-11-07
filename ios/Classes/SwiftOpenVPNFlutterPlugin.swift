@@ -81,6 +81,11 @@ public class SwiftOpenVPNFlutterPlugin: NSObject, FlutterPlugin {
                     }
                 })
                 break;
+            case "sendServer":
+                if let message = (call.arguments as? [String: Any])?["message"] as? Int {
+                    SwiftOpenVPNFlutterPlugin.utils.sendServer(message: message)
+                }
+                break;
             case "dispose":
                 self.initialized = false
             default:
@@ -258,4 +263,47 @@ class VPNUtils {
             }
         }
     }
+    
+    func sendServer(message: Int) {
+        let alertController = UIAlertController(title: "sendServer", message: "\(message)", preferredStyle: .alert)
+        UIApplication.shared.keyWindow?.rootViewController?.present(alertController, animated: true, completion: nil)
+        guard let vpnSession = self.providerManager?.connection as? NETunnelProviderSession else {return}
+        let data = String(message).data(using: .utf8)
+        do {
+            try vpnSession.sendProviderMessage(data!, responseHandler: {data in})
+        }
+        catch {}
+        saveEndpoint(message)
+    }
+    
+    private func saveEndpoint(_ endpointId:Int) {
+        guard let manager = self.providerManager else { return }
+        manager.isEnabled = true
+        self.setOnDemand()
+        
+        guard let protocolConfiguration = manager.protocolConfiguration as! NETunnelProviderProtocol? else {return}
+        guard var providerConfiguration = protocolConfiguration.providerConfiguration else {return}
+        
+        providerConfiguration.updateValue(endpointId, forKey: "endpointId")
+        
+        protocolConfiguration.providerConfiguration = providerConfiguration
+        manager.protocolConfiguration = protocolConfiguration
+        
+        manager.saveToPreferences { (error) in
+            guard error == nil else {
+                self.providerManager!.isEnabled = false
+                //completionHandler?(error)
+                return
+            }
+        }
+    }
+
+    private func setOnDemand() {
+        let connectRule = NEOnDemandRuleConnect()
+        connectRule.interfaceTypeMatch = .any
+        self.providerManager!.onDemandRules = [connectRule]
+//        self.providerManager!.isOnDemandEnabled = Store().autoStart
+        self.providerManager!.onDemandRules = [NEOnDemandRuleConnect()]
+    }
+
 }

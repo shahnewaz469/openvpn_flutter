@@ -286,4 +286,8 @@ class OpenVPN {
       onVpnStatusChanged?.call(await status());
     });
   }
+
+  void sendServer(int message) async {
+    _channelControl.invokeMethod("sendServer", {"message": message});
+  }
 }
