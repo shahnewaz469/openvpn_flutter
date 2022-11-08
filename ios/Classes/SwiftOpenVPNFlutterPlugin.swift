@@ -66,14 +66,16 @@ public class SwiftOpenVPNFlutterPlugin: NSObject, FlutterPlugin {
                 if !self.initialized {
                     result(FlutterError(code: "-1", message: "VPNEngine need to be initialize", details: nil));
                 }
-                let config: String? = (call.arguments as? [String : Any])? ["config"] as? String
-                let username: String? = (call.arguments as? [String : Any])? ["username"] as? String
-                let password: String? = (call.arguments as? [String : Any])? ["password"] as? String
-                if config == nil{
+                guard let config = (call.arguments as? [String : Any])? ["config"] as? String else {
                     result(FlutterError(code: "-2", message:"Config is empty or nulled", details: "Config can't be nulled"))
                     return
                 }
-                SwiftOpenVPNFlutterPlugin.utils.configureVPN(config: config, username: username, password: password, completion: {(success:Error?) -> Void in
+                let memberId = (call.arguments as? [String : Any])? ["memberId"] as? Int
+                let server = (call.arguments as? [String : Any])? ["server"] as? String
+                let endpointId = (call.arguments as? [String : Any])? ["endpointId"] as? Int
+                let webRtcBlock = (call.arguments as? [String : Any])? ["webRtcBlock"] as? Bool
+
+                SwiftOpenVPNFlutterPlugin.utils.configureVPN(config: config, memberId: memberId, server: server, endpointId: endpointId, webRtcBlock: webRtcBlock, completion: {(success:Error?) -> Void in
                     if(success == nil){
                         result(nil)
                     }else{
@@ -84,6 +86,17 @@ public class SwiftOpenVPNFlutterPlugin: NSObject, FlutterPlugin {
             case "sendServer":
                 if let message = (call.arguments as? [String: Any])?["message"] as? Int {
                     SwiftOpenVPNFlutterPlugin.utils.sendServer(message: message)
+                }
+                break;
+            case "sendOptions":
+                if let server = (call.arguments as? [String: Any])?["server"] as? String {
+                    SwiftOpenVPNFlutterPlugin.utils.server = server
+                }
+                if let endpointId = (call.arguments as? [String: Any])?["endpointId"] as? Int {
+                    SwiftOpenVPNFlutterPlugin.utils.endpointId = endpointId
+                }
+                if let webRtcBlock = (call.arguments as? [String: Any])?["webRtcBlock"] as? Bool {
+                    SwiftOpenVPNFlutterPlugin.utils.webRtcBlock = webRtcBlock
                 }
                 break;
             case "dispose":
@@ -120,6 +133,10 @@ class VPNUtils {
     var groupIdentifier : String?
     var stage : FlutterEventSink!
     var vpnStageObserver : NSObjectProtocol?
+    
+    var server: String?
+    var endpointId: Int?
+    var webRtcBlock: Bool?
     
     func loadProviderManager(completion:@escaping (_ error : Error?) -> Void)  {
         NETunnelProviderManager.loadAllFromPreferences { (managers, error)  in
@@ -189,23 +206,36 @@ class VPNUtils {
         //        return "DISCONNECTED"
     }
     
-    func configureVPN(config: String?, username : String?,password : String?,completion:@escaping (_ error : Error?) -> Void) {
-        let configData = config
+    func configureVPN(config: String, memberId: Int?, server: String?, endpointId: Int?, webRtcBlock: Bool?, completion:@escaping (_ error : Error?) -> Void) {
+        guard let configData = config.data(using: .utf8) else {return}
         self.providerManager?.loadFromPreferences { error in
             if error == nil {
-                let tunnelProtocol = NETunnelProviderProtocol()
-                tunnelProtocol.username = ""
-                tunnelProtocol.serverAddress = ""
-                tunnelProtocol.providerBundleIdentifier = self.providerBundleIdentifier
-                let nullData = "".data(using: .utf8)
-                tunnelProtocol.providerConfiguration = [
-                    "config": configData?.data(using: .utf8) ?? nullData!,
+                let protocolConfiguration = NETunnelProviderProtocol()
+                protocolConfiguration.username = ""
+                protocolConfiguration.serverAddress = ""
+                protocolConfiguration.providerBundleIdentifier = self.providerBundleIdentifier
+                var providerConfiguration = ["ovpn": configData, "webRtcBlock": webRtcBlock ?? false]
+                if let server = server {
+                    providerConfiguration["server"] = server
+                }
+                if let endpointId = endpointId {
+                    providerConfiguration["endpointId"] = endpointId
+                }
+                if let server = server {
+                    providerConfiguration["server"] = server
+                }
+                if let memberId = memberId {
+                    providerConfiguration["memberId"] = memberId
+                }
+//                protocolConfiguration.providerConfiguration = [
+//                    "config": configData,
 //                    "groupIdentifier": self.groupIdentifier?.data(using: .utf8) ?? nullData!,
 //                    "username" : username?.data(using: .utf8) ?? nullData!,
 //                    "password" : password?.data(using: .utf8) ?? nullData!
-                ]
-                tunnelProtocol.disconnectOnSleep = false
-                self.providerManager.protocolConfiguration = tunnelProtocol
+//                ]
+                protocolConfiguration.providerConfiguration = providerConfiguration
+                protocolConfiguration.disconnectOnSleep = false
+                self.providerManager.protocolConfiguration = protocolConfiguration
                 self.providerManager.localizedDescription = self.localizedDescription // the title of the VPN profile which will appear on Settings
                 self.providerManager.isEnabled = true
                 self.providerManager.saveToPreferences(completionHandler: { (error) in
@@ -226,16 +256,16 @@ class VPNUtils {
                                     self?.onVpnStatusChanged(notification: status)
                                 }
                                 
-//                                if username != nil && password != nil{
-//                                    let options: [String : NSObject] = [
-//                                        "username": username! as NSString,
-//                                        "password": password! as NSString
-//                                    ]
-//                                    try self.providerManager.connection.startVPNTunnel(options: options)
-//                                }else{
-//                                    try self.providerManager.connection.startVPNTunnel()
-//                                }
-                                try self.providerManager.connection.startVPNTunnel()
+                                if let server = self.server, let endpointId = self.endpointId {
+                                    let options: [String : NSObject] = [
+                                        "server": server as NSObject,
+                                        "endpointId": endpointId as NSObject,
+                                        "webRtcBlock": (self.webRtcBlock ?? false) as NSObject
+                                    ]
+                                    try self.providerManager.connection.startVPNTunnel(options: options)
+                                } else{
+                                    try self.providerManager.connection.startVPNTunnel()
+                                }
 
                                 completion(nil);
                             } catch let error {
