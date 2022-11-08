@@ -194,14 +194,15 @@ class VPNUtils {
         self.providerManager?.loadFromPreferences { error in
             if error == nil {
                 let tunnelProtocol = NETunnelProviderProtocol()
+                tunnelProtocol.username = ""
                 tunnelProtocol.serverAddress = ""
                 tunnelProtocol.providerBundleIdentifier = self.providerBundleIdentifier
                 let nullData = "".data(using: .utf8)
                 tunnelProtocol.providerConfiguration = [
                     "config": configData?.data(using: .utf8) ?? nullData!,
-                    "groupIdentifier": self.groupIdentifier?.data(using: .utf8) ?? nullData!,
-                    "username" : username?.data(using: .utf8) ?? nullData!,
-                    "password" : password?.data(using: .utf8) ?? nullData!
+//                    "groupIdentifier": self.groupIdentifier?.data(using: .utf8) ?? nullData!,
+//                    "username" : username?.data(using: .utf8) ?? nullData!,
+//                    "password" : password?.data(using: .utf8) ?? nullData!
                 ]
                 tunnelProtocol.disconnectOnSleep = false
                 self.providerManager.protocolConfiguration = tunnelProtocol
@@ -211,6 +212,7 @@ class VPNUtils {
                     if error == nil  {
                         self.providerManager.loadFromPreferences(completionHandler: { (error) in
                             if error != nil {
+                                self.providerManager.isEnabled = false
                                 completion(error);
                                 return;
                             }
@@ -224,15 +226,17 @@ class VPNUtils {
                                     self?.onVpnStatusChanged(notification: status)
                                 }
                                 
-                                if username != nil && password != nil{
-                                    let options: [String : NSObject] = [
-                                        "username": username! as NSString,
-                                        "password": password! as NSString
-                                    ]
-                                    try self.providerManager.connection.startVPNTunnel(options: options)
-                                }else{
-                                    try self.providerManager.connection.startVPNTunnel()
-                                }
+//                                if username != nil && password != nil{
+//                                    let options: [String : NSObject] = [
+//                                        "username": username! as NSString,
+//                                        "password": password! as NSString
+//                                    ]
+//                                    try self.providerManager.connection.startVPNTunnel(options: options)
+//                                }else{
+//                                    try self.providerManager.connection.startVPNTunnel()
+//                                }
+                                try self.providerManager.connection.startVPNTunnel()
+
                                 completion(nil);
                             } catch let error {
                                 self.stopVPN()
@@ -250,6 +254,8 @@ class VPNUtils {
     
     func stopVPN() {
         self.providerManager.connection.stopVPNTunnel();
+        self.providerManager.isOnDemandEnabled = false
+        self.providerManager.isEnabled = false
     }
     
     func getTraffictStats(){
@@ -265,8 +271,6 @@ class VPNUtils {
     }
     
     func sendServer(message: Int) {
-        let alertController = UIAlertController(title: "sendServer", message: "\(message)", preferredStyle: .alert)
-        UIApplication.shared.keyWindow?.rootViewController?.present(alertController, animated: true, completion: nil)
         guard let vpnSession = self.providerManager?.connection as? NETunnelProviderSession else {return}
         let data = String(message).data(using: .utf8)
         do {
