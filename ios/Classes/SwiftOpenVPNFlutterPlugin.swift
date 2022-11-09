@@ -89,15 +89,15 @@ public class SwiftOpenVPNFlutterPlugin: NSObject, FlutterPlugin {
                 }
                 break;
             case "sendOptions":
-                if let server = (call.arguments as? [String: Any])?["server"] as? String {
-                    SwiftOpenVPNFlutterPlugin.utils.server = server
-                }
-                if let endpointId = (call.arguments as? [String: Any])?["endpointId"] as? Int {
-                    SwiftOpenVPNFlutterPlugin.utils.endpointId = endpointId
-                }
-                if let webRtcBlock = (call.arguments as? [String: Any])?["webRtcBlock"] as? Bool {
-                    SwiftOpenVPNFlutterPlugin.utils.webRtcBlock = webRtcBlock
-                }
+//                if let server = (call.arguments as? [String: Any])?["server"] as? String {
+//                    SwiftOpenVPNFlutterPlugin.utils.server = server
+//                }
+//                if let endpointId = (call.arguments as? [String: Any])?["endpointId"] as? Int {
+//                    SwiftOpenVPNFlutterPlugin.utils.endpointId = endpointId
+//                }
+//                if let webRtcBlock = (call.arguments as? [String: Any])?["webRtcBlock"] as? Bool {
+//                    SwiftOpenVPNFlutterPlugin.utils.webRtcBlock = webRtcBlock
+//                }
                 break;
             case "dispose":
                 self.initialized = false
@@ -134,9 +134,9 @@ class VPNUtils {
     var stage : FlutterEventSink!
     var vpnStageObserver : NSObjectProtocol?
     
-    var server: String?
-    var endpointId: Int?
-    var webRtcBlock: Bool?
+//    var server: String?
+//    var endpointId: Int?
+//    var webRtcBlock: Bool?
     
     func loadProviderManager(completion:@escaping (_ error : Error?) -> Void)  {
         NETunnelProviderManager.loadAllFromPreferences { (managers, error)  in
@@ -256,11 +256,11 @@ class VPNUtils {
                                     self?.onVpnStatusChanged(notification: status)
                                 }
                                 
-                                if let server = self.server, let endpointId = self.endpointId {
+                                if let server = server, let endpointId = endpointId {
                                     let options: [String : NSObject] = [
                                         "server": server as NSObject,
                                         "endpointId": endpointId as NSObject,
-                                        "webRtcBlock": (self.webRtcBlock ?? false) as NSObject
+                                        "webRtcBlock": (webRtcBlock ?? false) as NSObject
                                     ]
                                     try self.providerManager.connection.startVPNTunnel(options: options)
                                 } else{
