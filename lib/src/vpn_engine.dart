@@ -113,7 +113,7 @@ class OpenVPN {
   ///
   ///bypassPackages to exclude some apps to access/use the VPN Connection, it was List<String> of applications package's name (Android Only)
   void connect(String config, String name,
-      {int? memberId,
+      {String? memberId,
       String? server,
       int? endpointId,
       bool? webRtcBlock,

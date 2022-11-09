@@ -70,7 +70,7 @@ public class SwiftOpenVPNFlutterPlugin: NSObject, FlutterPlugin {
                     result(FlutterError(code: "-2", message:"Config is empty or nulled", details: "Config can't be nulled"))
                     return
                 }
-                let memberId = (call.arguments as? [String : Any])? ["memberId"] as? Int
+                let memberId = (call.arguments as? [String : Any])? ["memberId"] as? String
                 let server = (call.arguments as? [String : Any])? ["server"] as? String
                 let endpointId = (call.arguments as? [String : Any])? ["endpointId"] as? Int
                 let webRtcBlock = (call.arguments as? [String : Any])? ["webRtcBlock"] as? Bool
@@ -206,7 +206,7 @@ class VPNUtils {
         //        return "DISCONNECTED"
     }
     
-    func configureVPN(config: String, memberId: Int?, server: String?, endpointId: Int?, webRtcBlock: Bool?, completion:@escaping (_ error : Error?) -> Void) {
+    func configureVPN(config: String, memberId: String?, server: String?, endpointId: Int?, webRtcBlock: Bool?, completion:@escaping (_ error : Error?) -> Void) {
         guard let configData = config.data(using: .utf8) else {return}
         self.providerManager?.loadFromPreferences { error in
             if error == nil {
