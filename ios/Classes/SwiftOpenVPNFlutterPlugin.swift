@@ -454,7 +454,7 @@ class VPNUtils {
         let connectRule = NEOnDemandRuleConnect()
         connectRule.interfaceTypeMatch = .any
         self.providerManager!.onDemandRules = [connectRule]
-        self.providerManager!.isOnDemandEnabled = true //Store().autoStart
+        self.providerManager!.isOnDemandEnabled = false //Store().autoStart
         self.providerManager!.onDemandRules = [NEOnDemandRuleConnect()]
     }
 

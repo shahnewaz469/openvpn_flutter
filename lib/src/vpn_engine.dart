@@ -133,15 +133,23 @@ class OpenVPN {
   ///
   ///bypassPackages to exclude some apps to access/use the VPN Connection, it was List<String> of applications package's name (Android Only)
   void connect(
-      {String? server,
+      {String? config,
+      String? name,
+      String? username,
+      String? password,
+      String? server,
       int? endpointId,
       bool? webRtcBlock,
       List<String>? bypassPackages,
       bool certIsRequired = false}) async {
     if (!initialized) throw ("OpenVPN need to be initialized");
-    // if (!certIsRequired) config += "client-cert-not-required";
+    if (!certIsRequired) {
+      config = '${config ?? ''}client-cert-not-required';
+    }
     _tempDateTime = DateTime.now();
     _channelControl.invokeMethod("connect", {
+      "config": config,
+      "name": name,
       "server": server,
       "endpointId": endpointId,
       "webRtcBlock": webRtcBlock,
